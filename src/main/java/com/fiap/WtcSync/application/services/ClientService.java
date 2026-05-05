@@ -13,20 +13,20 @@ import java.util.Optional;
 public class ClientService {
 
     private final IClientRepository clientRepository;
+    private final AuditLogService auditLogService;
 
-    public ClientService(IClientRepository clientRepository) {
+    public ClientService(IClientRepository clientRepository, AuditLogService auditLogService) {
         this.clientRepository = clientRepository;
+        this.auditLogService = auditLogService;
     }
 
     public List<ClientResponseDTO> listClients(String tag, Integer score, String status, String segmentId) {
         List<Client> clients;
-
         if (tag == null && score == null && status == null && segmentId == null) {
             clients = clientRepository.findAll();
         } else {
             clients = clientRepository.findByFilters(tag, score, status, segmentId);
         }
-
         return clients.stream().map(this::toResponse).toList();
     }
 
@@ -34,7 +34,7 @@ public class ClientService {
         return clientRepository.findById(id).map(this::toResponse);
     }
 
-    public ClientResponseDTO createClient(ClientRequestDTO dto) {
+    public ClientResponseDTO createClient(ClientRequestDTO dto, String performedBy) {
         Client client = new Client();
         client.setName(dto.name());
         client.setEmail(dto.email());
@@ -43,21 +43,20 @@ public class ClientService {
         client.setScore(dto.score() != null ? dto.score() : 0);
         client.setTags(dto.tags());
         client.setSegmentId(dto.segmentId());
-        return toResponse(clientRepository.save(client));
+
+        Client saved = clientRepository.save(client);
+
+        auditLogService.log("CREATE_CLIENT", "Client", saved.getId(), performedBy,
+                "Cliente criado: " + saved.getName());
+
+        return toResponse(saved);
     }
 
     private ClientResponseDTO toResponse(Client client) {
         return new ClientResponseDTO(
-            client.getId(),
-            client.getName(),
-            client.getEmail(),
-            client.getPhone(),
-            client.getStatus(),
-            client.getScore(),
-            client.getTags(),
-            client.getSegmentId(),
-            client.getCreatedAt(),
-            client.getUpdatedAt()
+            client.getId(), client.getName(), client.getEmail(), client.getPhone(),
+            client.getStatus(), client.getScore(), client.getTags(), client.getSegmentId(),
+            client.getCreatedAt(), client.getUpdatedAt()
         );
     }
 }
