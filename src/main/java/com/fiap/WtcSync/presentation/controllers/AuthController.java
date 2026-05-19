@@ -101,7 +101,7 @@ public class AuthController {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     String uid = auth.getName();
     try {
-      String customToken = FirebaseAuth.getInstance().createCustomTokenAsync(uid).get();
+      FirebaseToken customToken = FirebaseAuth.getInstance().createCustomTokenAsync(uid).get();
       return ResponseEntity.ok(new FirebaseTokenResponseDTO(customToken.getToken()));
     } catch (Exception e) {
       return ResponseEntity.internalServerError().build();
